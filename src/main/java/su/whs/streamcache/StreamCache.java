@@ -89,6 +89,30 @@ public class StreamCache extends InputStream {
     }
 
     @Override
+    public int read(byte[] b) throws IOException {
+        if (mCached) return mWrapped.read(b);
+        int len = mWrapped.read(b);
+        if (len>0)
+            mCache.write(b,0,len);
+        return len;
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+        if (mCached)
+            return mWrapped.read(b, off, len);
+        int rlen = mWrapped.read(b,off,len);
+        if (rlen>0)
+            mCache.write(b,off,rlen);
+        return rlen;
+    }
+
+    @Override
+    public int available() throws IOException {
+        return mWrapped.available();
+    }
+
+    @Override
     public void close() throws IOException {
         super.close();
         mWrapped.close();
