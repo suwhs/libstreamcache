@@ -56,15 +56,24 @@ public class StreamCache extends InputStream {
     private InputStream mWrapped;
     private OutputStream mCache;
 
-    public StreamCache(StreamsProvider provider) {
+    public StreamCache(StreamsProvider provider) throws IOException {
         mProvider = provider;
         mWrapped = provider.getCacheInputStream();
         if (mWrapped==null) {
             mWrapped = provider.getSourceInputStream();
+            if (mWrapped==null) throw new IOException("could not open source input stream");
             if (!mWrapped.markSupported()) {
                 mWrapped = new BufferedInputStream(mWrapped);
             }
             mCache = provider.getCacheOutputStream();
+            if (mCache==null) {
+                System.err.println("StreamCache: StreamCache.StreamsProvider returns null Output stream");
+                mCache = new OutputStream() {
+                    @Override
+                    public void write(int b) throws IOException {
+                    }
+                };
+            }
         } else {
             mCached = true;
         }
