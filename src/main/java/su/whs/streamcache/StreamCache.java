@@ -55,6 +55,8 @@ public class StreamCache extends InputStream {
     private boolean mCached = false;
     private InputStream mWrapped;
     private OutputStream mCache;
+    private boolean mMarked = false;
+    private int mMark = -1;
 
     public StreamCache(StreamsProvider provider) throws IOException {
         mProvider = provider;
@@ -84,7 +86,8 @@ public class StreamCache extends InputStream {
         /* */
         if (mCached) return mWrapped.read();
         int data = mWrapped.read();
-        mCache.write(data);
+        if (!mMarked)
+            mCache.write(data);
         return data;
     }
 
@@ -92,7 +95,7 @@ public class StreamCache extends InputStream {
     public int read(byte[] b) throws IOException {
         if (mCached) return mWrapped.read(b);
         int len = mWrapped.read(b);
-        if (len>0)
+        if (len>0 && !mMarked)
             mCache.write(b,0,len);
         return len;
     }
@@ -102,7 +105,7 @@ public class StreamCache extends InputStream {
         if (mCached)
             return mWrapped.read(b, off, len);
         int rlen = mWrapped.read(b,off,len);
-        if (rlen>0)
+        if (rlen>0 && !mMarked)
             mCache.write(b,off,rlen);
         return rlen;
     }
@@ -117,5 +120,17 @@ public class StreamCache extends InputStream {
         super.close();
         mWrapped.close();
         if (mCache!=null) mCache.close();
+    }
+
+    @Override
+    public void mark(int bytes) {
+        mWrapped.mark(bytes);
+        mMarked = true;
+    }
+
+    @Override
+    public void reset() throws IOException {
+        mWrapped.reset();
+        mMarked = false;
     }
 }
